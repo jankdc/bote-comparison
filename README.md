@@ -1,33 +1,67 @@
-# bote-comparison
+# bote
 
-As fair as I could I write it, a reproduction of the comparison table from the [`bote` README](https://github.com/jankdc/bote), 
-run against the canonical 181 MB [`citylots.json`](https://github.com/zemirco/sf-city-lots-json) GeoJSON.
-
-Each approach runs a task to output the top 10 tallied streets in San Francisco.
+A fast, modern and low-memory approach to processing a big JSON:
 
 ```sh
-npm install
-curl -L -o citylots.json https://raw.githubusercontent.com/zemirco/sf-city-lots-json/refs/heads/master/citylots.json
-./bench.sh
+npm install @botejs/core
 ```
 
-## Notes
+```ts
+import { fileURLToPath } from 'node:url';
+import { open, fromFile } from '@botejs/core';
 
-- See `./bench.sh` for instructions
-- Requires v22 Node.js, `hyperfine` and MacOS' `/usr/bin/time` for this script to work
-- Not all approaches are completely equal because some libraries don't have support for selective materialization (see below)
+// 181 MB GeoJSON:
+// { type: "...", features: [{ properties: { STREET: "..." }}] }
+const filePath = fileURLToPath(new URL('../citylots.json', import.meta.url));
 
-## Caveat
+await using cursor = await open(fromFile(filePath));
 
-Honestly, I'm not really sure how to write this benchmark. I could go on the path of apples-for-apples execution
-and value materialization with other libraries to fairly represent how those libraries got to where they are in terms
-of memory and compute. However, on the other pendulum, it feels like I'm doing a disservice to the design of bote and other libraries that
-support being able to do better, whilst achieving the same output.
+const byStreet = await cursor
+  .iter('features', {
+    select: ['properties', 'STREET'],
+  })
+  .reduce((tally, street) => {
+    if (typeof street === 'string') {
+      tally.set(street, (tally.get(street) ?? 0) + 1);
+    }
+    return tally;
+  }, new Map());
 
-Overall, I think the point of this benchmark is to shine what bote can do and do well, not to be too neutral about
-stuff, whilst still being transparent about why it's doing well.
+console.log([...byStreet].sort((a, b) => b[1] - a[1]).slice(0, 10));
+```
 
-In that spirit, all opinions and contributions are welcome to try and make this better :)
+Given a **seekable** or **forward** source and a path, it retrieves values out of a JSON, without loading the whole thing in-memory.
+
+Here's a run (Apple M1 Pro 2021, default settings, RUNS=100):
+
+| method             | mean time (seconds) | mean peak footprint (MB) |
+| ------------------ | -----------------   | ------------------------ |
+| bote               | 0.517 ± 0.018 s     | 40.3 ± 2.5               |
+| JSON.parse         | 0.816 ± 0.031 s     | 648.9 ± 2.4              |
+| JSONStream         | 4.452 ± 0.052 s     | 57.9 ± 3.9               |
+| @streamparser/json | 5.103 ± 0.084 s     | 47.9 ± 2.3               |
+| oboe.js            | 8.566 ± 0.295 s     | 100.0 ± 4.6              |
+| stream-json        | 13.346 ± 0.569 s    | 207.6 ± 8.4              |
+
+For comparison notes, go [here](https://github.com/jankdc/bote-comparison).
+
+## Features
+
+* Modern `AsyncIterator` API with helpers that emulate the [tc39 ones](https://github.com/tc39/proposal-async-iterator-helpers)
+* Validate with [Standard Schema](https://standardschema.dev/), avoiding those pesky `unknown`s
+* Supports multiple sources of data (e.g. file, network, stream) or write a custom one (see [example](./examples/))
+* For forward-only sources, there's support for replaying/buffering, allowing navigation to previous values
+
+## Documentation
+
+Coming soon. Check the [./examples](./examples/) folder for usages. I've also heavily JSDoc'ed the hell out of the API so have fun 
+playing around with it for now.
+
+## Status
+
+Pre-1.0. Still in development and APIs may change based on feedback, bugs and holy divinations from the coding gods.
+
+I would say 90% satisfactory for MVP, but I'm getting there.
 
 ## License
 
