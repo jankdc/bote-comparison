@@ -28,3 +28,7 @@ Overall, I think the point of this benchmark is to shine what bote can do and do
 stuff, whilst still being transparent about why it's doing well.
 
 In that spirit, all opinions and contributions are welcome to try and make this better :)
+
+## License
+
+MIT.
