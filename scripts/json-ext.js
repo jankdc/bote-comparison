@@ -5,7 +5,7 @@ import { parseChunked } from '@discoveryjs/json-ext';
 
 const filePath = process.argv[2] ?? fileURLToPath(new URL('../citylots.json', import.meta.url));
 
-const doc = await parseChunked(createReadStream(filePath, { highWaterMark: 512 * 1024 }));
+const doc = await parseChunked(createReadStream(filePath));
 
 const byStreet = doc.features.reduce((tally, feature) => {
   const street = feature.properties?.STREET;
