@@ -12,8 +12,8 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RUNS="${RUNS:-5}"
 FILE="${FILE:-$DIR/citylots.json}"
 
-LABELS=('JSON.parse' 'bote' '@streamparser/json' 'JSONStream' 'oboe.js' 'stream-json')
-SCRIPTS=('json-parse' 'bote' 'streamparser' 'jsonstream' 'oboe' 'stream-json')
+LABELS=('JSON.parse' 'bote' '@streamparser/json' 'JSONStream' 'oboe.js' 'stream-json' '@discoveryjs/json-ext')
+SCRIPTS=('json-parse' 'bote' 'streamparser' 'jsonstream' 'oboe' 'stream-json' 'json-ext')
 
 if [[ ! -f "$FILE" ]]; then
   echo "fixture not found: $FILE" >&2
@@ -78,10 +78,10 @@ done
 
 {
   printf '\n'
-  printf '| method             | mean time         | mean peak footprint (MB) |\n'
-  printf '| ------------------ | ----------------- | ------------------------ |\n'
+  printf '| method                | mean time         | mean peak footprint (MB) |\n'
+  printf '| --------------------- | ----------------- | ------------------------ |\n'
   emit_rows <"$hf_csv" | sort -t$'\t' -k1,1n | while IFS=$'\t' read -r mean stddev mb label; do
-    printf '| %s | %s | %s |\n' "$(pad "$label" 18)" "$(pad "$(printf '%.3f ± %.3f s' "$mean" "$stddev")" 17)" "$(pad "$mb" 24)"
+    printf '| %s | %s | %s |\n' "$(pad "$label" 21)" "$(pad "$(printf '%.3f ± %.3f s' "$mean" "$stddev")" 17)" "$(pad "$mb" 24)"
   done
   printf '\n'
 }
